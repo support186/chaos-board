@@ -105,11 +105,11 @@
 
         /* --- MOBILE SPECIFIC OVERRIDES --- */
         @media (max-width: 600px) {
-            /* 1. Perfect Layout: Cooler Left, Bin Center, Bob Right */
-            #background-office { padding: 0; }
-            #water-cooler { position: absolute; left: 10px; bottom: 0; transform: scale(0.65); }
-            #bin-container { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(0.65); margin: 0; }
-            #coworker-desk { position: absolute; right: 10px; bottom: 0; transform: scale(0.65); margin: 0; }
+            /* 1. Perfect Layout: Absolute positioning to force elements to the corners */
+            #background-office { padding: 0; display: block; }
+            #water-cooler { position: absolute; left: 10px; bottom: 0; transform: scale(0.65); transform-origin: bottom left; }
+            #bin-container { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(0.65); transform-origin: bottom center; margin: 0; }
+            #coworker-desk { position: absolute; right: 10px; bottom: 0; transform: scale(0.65); transform-origin: bottom right; margin: 0; }
             #coworker-speech { left: -140px; width: 120px; }
             
             /* Shrink desk props */
@@ -126,14 +126,14 @@
             /* 2. THE BULLETPROOF CENTER-SCREEN NOTE FIX */
             .note { width: 200px; height: 210px; } 
             
-            /* When a note is opened on mobile, it detaches and locks dead center */
+            /* The 'fixed' property glues the note to the phone screen glass, ignoring the board completely */
             .note.editing {
+                position: fixed !important; 
                 left: 50% !important;
                 top: 50% !important;
-                transform: translate(-50%, -50%) scale(1.1) !important;
-                z-index: 9999 !important;
+                transform: translate(-50%, -50%) scale(1.15) !important;
+                z-index: 99999 !important;
             }
-            /* Hide the drag pin when editing on mobile so you don't accidentally move it */
             .note.editing .note-header { display: none; }
         }
 
@@ -606,8 +606,8 @@
                 const speech = document.getElementById('coworker-speech');
                 const lines = [
                     "כוסעמק, תפסיק לזרוק עלי דברים!", 
-                    "לך תחפש מי ינענע אותך", 
-                    "עזוב אותי באמא שלך",
+                    "לך תחפש מי ינענע אותך!", 
+                    "עזוב אותי באמא שלך...",
                     "ינעל דינק, אני באמצע פגישה!",
                     "איזה נודניק, יא אללה",
                     "לך לעזאזל יא מניאק",
