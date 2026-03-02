@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Office Physics Simulator</title>
+    <title>Community Chaos Board</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
@@ -13,17 +13,19 @@
             --pin: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Pushpin.svg/64px-Pushpin.svg.png');
         }
         body { 
-            margin: 0; height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif;
+            margin: 0; height: 100vh; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif;
             background: #2c3e50; display: flex; flex-direction: column; touch-action: none; user-select: none;
         }
 
         /* --- BACKGROUND OFFICE & TARGETS --- */
         #background-office {
             height: 20vh; background: #34495e; position: relative;
-            border-bottom: 8px solid #1a252f; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 40px;
+            border-bottom: 8px solid #1a252f; display: flex; align-items: flex-end; 
+            /* Fixed Mobile Spacing: Use space-around and remove hardcoded margins */
+            justify-content: space-around; padding: 0 10px;
         }
         
-        #water-cooler { width: 50px; height: 120px; position: relative; }
+        #water-cooler { width: 50px; height: 120px; position: relative; transform-origin: bottom; }
         #jug { width: 46px; height: 60px; background: rgba(52,152,219,0.6); border-radius: 10px 10px 0 0; border: 2px solid rgba(255,255,255,0.4); }
         #cooler-base { width: 50px; height: 60px; background: #ecf0f1; border-radius: 2px; position: relative; }
         .tap { position: absolute; top: 10px; left: 20px; width: 10px; height: 10px; background: #333; border-radius: 50%; }
@@ -32,7 +34,7 @@
             background: rgba(52,152,219,0.7); border-radius: 50%; opacity: 0; transition: width 0.5s, opacity 0.5s;
         }
 
-        #bin-container { position: relative; margin-left: 20px; margin-bottom: 10px; }
+        #bin-container { position: relative; transform-origin: bottom; margin-bottom: 10px; }
         #bin { 
             width: 60px; height: 70px; background: #7f8c8d; border-radius: 5px 5px 15px 15px; 
             position: relative; box-shadow: inset -5px 0 10px rgba(0,0,0,0.2);
@@ -52,7 +54,7 @@
         #coworker-desk {
             width: 130px; height: 90px; background: #2c3e50; border: 4px solid #1a252f;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end; color: white;
-            border-radius: 5px 5px 0 0; position: relative; padding-bottom: 5px; margin-right: 20px;
+            border-radius: 5px 5px 0 0; position: relative; padding-bottom: 5px; transform-origin: bottom;
         }
         #bob { font-size: 40px; line-height: 1; position: relative; }
         #bob-headphones { position: absolute; top: -2px; left: 10px; font-size: 26px; transform: rotate(-10deg); }
@@ -69,6 +71,12 @@
         #coworker-speech::after {
             content: ''; position: absolute; top: 17px; right: -8px;
             border-width: 6px 0 6px 8px; border-style: solid; border-color: transparent transparent transparent white;
+        }
+
+        /* Responsive Mobile Furniture Scaling */
+        @media (max-width: 600px) {
+            .target { transform: scale(0.85); }
+            #coworker-speech { left: -120px; width: 100px; }
         }
 
         /* --- THE BOARD --- */
@@ -134,9 +142,10 @@
         .note-header { height: 25px; display: flex; justify-content: center; background: rgba(0,0,0,0.03); border-bottom: 1px solid rgba(0,0,0,0.05); position: relative; }
         .note-header::before { content: ''; position: absolute; top: -5px; width: 25px; height: 25px; background-image: var(--pin); background-size: contain; background-repeat: no-repeat; }
         .note-body { flex: 1; position: relative; background: inherit; }
+        
         .note-text {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; border: none; padding: 10px; box-sizing: border-box;
-            font-family: 'Comic Sans MS', cursive; font-size: 16px; outline: none; resize: none; z-index: 1; pointer-events: none;
+            font-family: 'Comic Sans MS', cursive, sans-serif; font-size: 16px; outline: none; resize: none; z-index: 1; pointer-events: none;
         }
         .note-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
         
@@ -214,12 +223,16 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database().ref('notes');
 
-        // --- ADMIN BOARD WIPE ---
+        // --- GHOST EXORCISM: ADMIN WIPE ---
         function adminWipe() {
             const pwd = prompt("Enter Admin Password:");
             if (pwd === "chaos") {
                 db.remove()
-                    .then(() => alert("Board successfully wiped!"))
+                    .then(() => {
+                        // Force clean the local HTML board instantly
+                        document.querySelectorAll('.note').forEach(n => n.remove());
+                        alert("Board successfully wiped! All ghosts eliminated.");
+                    })
                     .catch((err) => alert("Error wiping board: " + err.message));
             } else if (pwd !== null) {
                 alert("Incorrect password. Nice try.");
@@ -269,8 +282,8 @@
             
             if (!note.classList.contains('editing')) {
                 const textArea = note.querySelector('.note-text');
-                // GHOST FIX: Fallback to empty string if data.text is undefined
-                const newText = data.text || ''; 
+                // Absolute fallback to prevent "undefined"
+                const newText = data.text === undefined ? '' : data.text; 
                 if (textArea.value !== newText) textArea.value = newText;
                 textArea.style.color = data.color || '#000';
             }
@@ -288,19 +301,22 @@
         });
 
         function renderNoteFromDB(id, data) {
+            // Guard against fully corrupted database ghost nodes
+            if (!data) return;
+
             const note = document.createElement('div');
             note.className = 'note'; 
             note.id = id; 
-            // GHOST FIX: Ensure default colors and text so "undefined" never shows up
             note.style.backgroundColor = data.bgColor || '#feff9c';
             note.style.left = (data.left || 15) + '%'; 
             note.style.top = (data.top || 10) + '%';
             note.dataset.isDragging = 'false';
 
+            // Added dir="auto" for native Hebrew / LTR / RTL support!
             note.innerHTML = `
                 <div class="note-header"></div>
                 <div class="note-body">
-                    <textarea class="note-text"></textarea>
+                    <textarea class="note-text" dir="auto"></textarea>
                     <canvas class="note-canvas"></canvas>
                 </div>
                 <div class="note-controls">
@@ -315,7 +331,7 @@
             const body = note.querySelector('.note-body');
             const textArea = note.querySelector('.note-text');
             
-            textArea.value = data.text || '';
+            textArea.value = data.text === undefined ? '' : data.text;
             textArea.style.color = data.color || '#000';
 
             if (data.drawing) {
@@ -412,10 +428,13 @@
                 let newLeft = startNoteLeftPct + dxPct;
                 let newTop = startNoteTopPct + dyPct;
 
-                // --- INVISIBLE FENCE: Clamp coordinates so notes can't go off-screen ---
-                // Calculates the max percentage space the note can take without overflowing
-                const maxLeft = 100 - ((note.offsetWidth / boardRect.width) * 100);
-                const maxTop = 100 - ((note.offsetHeight / boardRect.height) * 100);
+                // --- THE FIXED FENCE: Calculate based on SHRUNKEN size ---
+                const scaleModifier = note.classList.contains('editing') || note.matches(':hover') ? 1 : 0.2;
+                const scaledWidth = note.offsetWidth * scaleModifier;
+                const scaledHeight = note.offsetHeight * scaleModifier;
+                
+                const maxLeft = 100 - ((scaledWidth / boardRect.width) * 100);
+                const maxTop = 100 - ((scaledHeight / boardRect.height) * 100);
 
                 if (newLeft < 0) newLeft = 0;
                 if (newLeft > maxLeft) newLeft = maxLeft;
