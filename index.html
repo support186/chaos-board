@@ -21,10 +21,10 @@
         #background-office {
             height: 20vh; background: #34495e; position: relative;
             border-bottom: 8px solid #1a252f; display: flex; align-items: flex-end; 
-            justify-content: space-around; padding: 0 10px;
+            justify-content: space-between; padding: 0 40px;
         }
         
-        #water-cooler { width: 50px; height: 120px; position: relative; transform-origin: bottom; }
+        #water-cooler { width: 50px; height: 120px; position: relative; transform-origin: bottom left; }
         #jug { width: 46px; height: 60px; background: rgba(52,152,219,0.6); border-radius: 10px 10px 0 0; border: 2px solid rgba(255,255,255,0.4); }
         #cooler-base { width: 50px; height: 60px; background: #ecf0f1; border-radius: 2px; position: relative; }
         .tap { position: absolute; top: 10px; left: 20px; width: 10px; height: 10px; background: #333; border-radius: 50%; }
@@ -33,7 +33,7 @@
             background: rgba(52,152,219,0.7); border-radius: 50%; opacity: 0; transition: width 0.5s, opacity 0.5s;
         }
 
-        #bin-container { position: relative; transform-origin: bottom; margin-bottom: 10px; }
+        #bin-container { position: relative; transform-origin: bottom center; margin-bottom: 10px; }
         #bin { 
             width: 60px; height: 70px; background: #7f8c8d; border-radius: 5px 5px 15px 15px; 
             position: relative; box-shadow: inset -5px 0 10px rgba(0,0,0,0.2);
@@ -53,15 +53,15 @@
         #coworker-desk {
             width: 130px; height: 90px; background: #2c3e50; border: 4px solid #1a252f;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end; color: white;
-            border-radius: 5px 5px 0 0; position: relative; padding-bottom: 5px; transform-origin: bottom;
+            border-radius: 5px 5px 0 0; position: relative; padding-bottom: 5px; transform-origin: bottom right;
         }
         #bob { font-size: 40px; line-height: 1; position: relative; }
         #bob-headphones { position: absolute; top: -2px; left: 10px; font-size: 26px; transform: rotate(-10deg); }
         
         #coworker-speech {
-            position: absolute; top: 0px; left: -160px; width: 140px; background: white; color: black;
-            padding: 8px; border-radius: 8px; font-size: 12px; font-weight: bold; text-align: center;
-            display: none; border: 2px solid #333; z-index: 50;
+            position: absolute; top: -10px; left: -140px; width: 130px; background: white; color: black;
+            padding: 8px; border-radius: 8px; font-size: 13px; font-weight: bold; text-align: center;
+            display: none; border: 2px solid #333; z-index: 50; direction: rtl; 
         }
         #coworker-speech::before { content: ''; position: absolute; top: 15px; right: -12px; border-width: 8px 0 8px 10px; border-style: solid; border-color: transparent transparent transparent #333; }
         #coworker-speech::after { content: ''; position: absolute; top: 17px; right: -8px; border-width: 6px 0 6px 8px; border-style: solid; border-color: transparent transparent transparent white; }
@@ -103,24 +103,38 @@
         #scrunched-paper:active { cursor: grabbing; }
         #trajectory { position: fixed; border-top: 2px dashed rgba(255,255,255,0.8); transform-origin: 0 0; display: none; z-index: 999; pointer-events: none; }
 
-        /* --- MOBILE RESPONSIVE FIXES --- */
+        /* --- MOBILE SPECIFIC OVERRIDES --- */
         @media (max-width: 600px) {
-            /* Shrink background props */
-            #water-cooler, #coworker-desk, #bin-container { transform: scale(0.65); }
-            #coworker-speech { left: -100px; width: 110px; }
+            /* 1. Perfect Layout: Cooler Left, Bin Center, Bob Right */
+            #background-office { padding: 0; }
+            #water-cooler { position: absolute; left: 10px; bottom: 0; transform: scale(0.65); }
+            #bin-container { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(0.65); margin: 0; }
+            #coworker-desk { position: absolute; right: 10px; bottom: 0; transform: scale(0.65); margin: 0; }
+            #coworker-speech { left: -140px; width: 120px; }
             
             /* Shrink desk props */
             #cup, #coffee-container { transform: scale(0.65); }
             #cup { left: -5%; }
-            #coffee-container { right: 0%; }
+            #coffee-container { right: -5%; }
             #scrunched-paper { bottom: 50px; transform: scale(0.8); }
             
             /* Adjust Board & Pads */
             #board-title { font-size: 11px; padding: 4px 10px; top: -12px; }
-            #pads-container { top: 25px; } /* Moves pads down away from title */
+            #pads-container { top: 25px; } 
             .pad { width: 35px; height: 35px; font-size: 16px; }
             
-            .note { width: 180px; height: 190px; } /* Slightly smaller notes on phone */
+            /* 2. THE BULLETPROOF CENTER-SCREEN NOTE FIX */
+            .note { width: 200px; height: 210px; } 
+            
+            /* When a note is opened on mobile, it detaches and locks dead center */
+            .note.editing {
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) scale(1.1) !important;
+                z-index: 9999 !important;
+            }
+            /* Hide the drag pin when editing on mobile so you don't accidentally move it */
+            .note.editing .note-header { display: none; }
         }
 
         /* --- SMART NOTES --- */
@@ -248,7 +262,6 @@
 
         // --- 2. PERCENTAGE-BASED CLOUD SYNC LOGIC ---
         function createNoteInCloud(bgColor) {
-            // FIX: Randomize spawn location so they don't perfectly stack and look like "ghosts"
             const randomX = 15 + Math.random() * 10;
             const randomY = 10 + Math.random() * 10;
             
@@ -307,7 +320,6 @@
             note.style.top = (data.top || 10) + '%';
             note.dataset.isDragging = 'false';
 
-            // FIX: Added dir="auto" to textArea. This automatically detects Hebrew and types Right-to-Left!
             note.innerHTML = `
                 <div class="note-header"></div>
                 <div class="note-body">
@@ -423,11 +435,12 @@
                 let newLeft = startNoteLeftPct + dxPct;
                 let newTop = startNoteTopPct + dyPct;
 
-                // FIX: PERFECT INVISIBLE FENCE
-                // This uses the actual rendered size on screen (whether small or expanded) to keep it in bounds
-                const rect = note.getBoundingClientRect();
-                const maxLeft = 100 - ((rect.width / boardRect.width) * 100);
-                const maxTop = 100 - ((rect.height / boardRect.height) * 100);
+                const scaleModifier = note.classList.contains('editing') || note.matches(':hover') ? 1 : 0.25;
+                const scaledWidth = note.offsetWidth * scaleModifier;
+                const scaledHeight = note.offsetHeight * scaleModifier;
+                
+                const maxLeft = 100 - ((scaledWidth / boardRect.width) * 100);
+                const maxTop = 100 - ((scaledHeight / boardRect.height) * 100);
 
                 if (newLeft < 0) newLeft = 0;
                 if (newLeft > maxLeft) newLeft = maxLeft;
@@ -592,11 +605,15 @@
             else if (type === 'bob') {
                 const speech = document.getElementById('coworker-speech');
                 const lines = [
-                    "Watch it!", "HR will hear about this.", "Hostile work environment!", "Missed me.",
-                    "Per my last email...", "Let's take this offline.", "I'm literally on a Zoom right now.",
-                    "Can we circle back?", "Ping me on Slack.", "I have a hard stop at 4.",
-                    "This could have been an email.", "Who touched my stapler?", "I need more coffee.",
-                    "Synergy!", "We need to align on this."
+                    "כוסעמק, תפסיק לזרוק עלי דברים!", 
+                    "לך תחפש מי ינענע אותך", 
+                    "עזוב אותי באמא שלך",
+                    "ינעל דינק, אני באמצע פגישה!",
+                    "איזה נודניק, יא אללה",
+                    "לך לעזאזל יא מניאק",
+                    "מה נסגר איתך חתיכת טמבל?!",
+                    "יאללה סע סע מפה",
+                    "חלאס לשגע אותי, כוס אמק!"
                 ];
                 speech.innerText = lines[Math.floor(Math.random() * lines.length)];
                 speech.style.display = 'block';
