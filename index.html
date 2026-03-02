@@ -78,7 +78,6 @@
         }
         #frame { width: 85%; height: 90%; background: var(--wood); padding: 15px; border-radius: 8px; position: relative; }
         
-        /* SECRET ADMIN BUTTON STYLING */
         #board-title {
             position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #d4af37;
             padding: 5px 20px; border-radius: 3px; font-family: serif; font-weight: bold; font-size: 16px;
@@ -177,4 +176,395 @@
                 <div id="pads-container">
                     <div class="pad" style="background: #feff9c" onclick="createNoteInCloud('#feff9c')">+</div>
                     <div class="pad" style="background: #ffb6c1" onclick="createNoteInCloud('#ffb6c1')">+</div>
-                    <div class="pad"
+                    <div class="pad" style="background: #a0e6ff" onclick="createNoteInCloud('#a0e6ff')">+</div>
+                    <div class="pad" style="background: #b9ffb0" onclick="createNoteInCloud('#b9ffb0')">+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="desk">
+        <div id="cup">
+            <div class="sharpie active" style="--marker-color: #2c3e50;" onclick="setSharpie(this, '#2c3e50')"></div>
+            <div class="sharpie" style="--marker-color: #c0392b;" onclick="setSharpie(this, '#c0392b')"></div>
+            <div class="sharpie" style="--marker-color: #2980b9;" onclick="setSharpie(this, '#2980b9')"></div>
+            <div class="sharpie" style="--marker-color: #27ae60;" onclick="setSharpie(this, '#27ae60')"></div>
+        </div>
+        
+        <div id="coffee-container" class="target" data-hit="coffee">
+            <div id="coffee-spill"></div>
+            <div id="coffee"></div>
+        </div>
+    </div>
+
+    <div id="trajectory"></div>
+    <div id="scrunched-paper"></div>
+
+    <script>
+        // --- 1. FIREBASE SETUP ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDDmGYRgwUgV4C02QIqYkQMZFqVr8Rhmns",
+            authDomain: "chaos-board-a4ff7.firebaseapp.com",
+            databaseURL: "https://chaos-board-a4ff7-default-rtdb.firebaseio.com",
+            projectId: "chaos-board-a4ff7",
+            storageBucket: "chaos-board-a4ff7.firebasestorage.app",
+            messagingSenderId: "1001140562423",
+            appId: "1:1001140562423:web:d02d931d57ead5c9b966f2"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database().ref('notes');
+
+        // --- ADMIN BOARD WIPE ---
+        function adminWipe() {
+            const pwd = prompt("Enter Admin Password:");
+            if (pwd === "chaos") {
+                db.remove()
+                    .then(() => alert("Board successfully wiped!"))
+                    .catch((err) => alert("Error wiping board: " + err.message));
+            } else if (pwd !== null) {
+                alert("Incorrect password. Nice try.");
+            }
+        }
+
+        let currentInk = '#2c3e50';
+        const board = document.getElementById('corkboard');
+
+        function setSharpie(element, color) {
+            document.querySelectorAll('.sharpie').forEach(s => s.classList.remove('active'));
+            element.classList.add('active'); currentInk = color;
+        }
+
+        board.addEventListener('mousedown', (e) => {
+            if (e.target === board) {
+                document.querySelectorAll('.note').forEach(n => { n.classList.remove('editing'); n.querySelector('.note-canvas').style.pointerEvents = 'none'; });
+            }
+        });
+
+        // --- 2. PERCENTAGE-BASED CLOUD SYNC LOGIC ---
+        function createNoteInCloud(bgColor) {
+            db.push({
+                bgColor: bgColor,
+                left: 15, top: 10, 
+                text: '', color: currentInk,
+                drawing: '' 
+            });
+        }
+
+        db.on('child_added', (snapshot) => { renderNoteFromDB(snapshot.key, snapshot.val()); });
+
+        db.on('child_removed', (snapshot) => {
+            const noteToRemove = document.getElementById(snapshot.key);
+            if (noteToRemove) noteToRemove.remove();
+        });
+
+        db.on('child_changed', (snapshot) => {
+            const data = snapshot.val();
+            const note = document.getElementById(snapshot.key);
+            if (!note) return;
+            
+            if (note.dataset.isDragging !== 'true') {
+                note.style.left = data.left + '%';
+                note.style.top = data.top + '%';
+            }
+            
+            if (!note.classList.contains('editing')) {
+                const textArea = note.querySelector('.note-text');
+                if (textArea.value !== data.text) textArea.value = data.text;
+                textArea.style.color = data.color;
+            }
+
+            if (data.drawing) {
+                const canvas = note.querySelector('.note-canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = data.drawing;
+            }
+        });
+
+        function renderNoteFromDB(id, data) {
+            const note = document.createElement('div');
+            note.className = 'note'; 
+            note.id = id; 
+            note.style.backgroundColor = data.bgColor;
+            note.style.left = data.left + '%'; 
+            note.style.top = data.top + '%';
+            note.dataset.isDragging = 'false';
+
+            note.innerHTML = `
+                <div class="note-header"></div>
+                <div class="note-body">
+                    <textarea class="note-text"></textarea>
+                    <canvas class="note-canvas"></canvas>
+                </div>
+                <div class="note-controls">
+                    <button class="mode-btn active" onclick="switchMode(this, 'type')">Type</button>
+                    <button class="mode-btn" onclick="switchMode(this, 'draw')">Draw</button>
+                    <button class="mode-btn" style="background:#e74c3c; color:white; border-color:#c0392b" onclick="closeNote(this)">Done</button>
+                </div>
+            `;
+
+            board.appendChild(note);
+            const canvas = note.querySelector('.note-canvas');
+            const body = note.querySelector('.note-body');
+            const textArea = note.querySelector('.note-text');
+            
+            textArea.value = data.text;
+            textArea.style.color = data.color;
+
+            if (data.drawing) {
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = () => ctx.drawImage(img, 0, 0);
+                img.src = data.drawing;
+            }
+
+            note.addEventListener('dblclick', () => {
+                document.querySelectorAll('.note').forEach(n => n.classList.remove('editing'));
+                note.classList.add('editing');
+                switchMode(note.querySelector('.mode-btn'), 'type'); 
+            });
+
+            textArea.addEventListener('input', () => { 
+                textArea.style.color = currentInk;
+                db.child(id).update({ text: textArea.value, color: currentInk });
+            });
+            
+            setTimeout(() => { canvas.width = body.offsetWidth; canvas.height = body.offsetHeight; initDrawing(canvas, id); }, 10);
+            initDragging(note, id);
+        }
+
+        function closeNote(btn) {
+            const note = btn.closest('.note');
+            note.classList.remove('editing');
+            note.querySelector('.note-canvas').style.pointerEvents = 'none';
+        }
+
+        function switchMode(btn, mode) {
+            const note = btn.closest('.note');
+            const canvas = note.querySelector('.note-canvas');
+            const textArea = note.querySelector('.note-text');
+            note.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (mode === 'draw') { canvas.style.pointerEvents = 'auto'; textArea.blur(); } 
+            else { canvas.style.pointerEvents = 'none'; textArea.focus(); }
+        }
+
+        function initDrawing(canvas, id) {
+            const ctx = canvas.getContext('2d');
+            let drawing = false;
+            const getPos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                return { x: (e.touches ? e.touches[0].clientX : e.clientX) - rect.left, y: (e.touches ? e.touches[0].clientY : e.clientY) - rect.top };
+            };
+            const start = (e) => { drawing = true; ctx.beginPath(); draw(e); };
+            const stop = () => { 
+                drawing = false; 
+                db.child(id).update({ drawing: canvas.toDataURL() });
+            };
+            const draw = (e) => {
+                if (!drawing) return; const p = getPos(e);
+                ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = currentInk;
+                ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.moveTo(p.x, p.y);
+            };
+            canvas.addEventListener('mousedown', start); canvas.addEventListener('touchstart', (e) => { e.preventDefault(); start(e); });
+            window.addEventListener('mousemove', draw); window.addEventListener('touchmove', (e) => { if(drawing) e.preventDefault(); draw(e); });
+            window.addEventListener('mouseup', stop); window.addEventListener('touchend', stop);
+        }
+
+        function initDragging(note, id) {
+            let dragging = false;
+            let startMouseX, startMouseY, startNoteLeftPct, startNoteTopPct;
+
+            const start = (e) => {
+                if (note.classList.contains('editing') && !e.target.classList.contains('note-header')) return; 
+                dragging = true; note.dataset.isDragging = 'true';
+                startMouseX = e.touches ? e.touches[0].clientX : e.clientX; 
+                startMouseY = e.touches ? e.touches[0].clientY : e.clientY;
+                startNoteLeftPct = parseFloat(note.style.left) || 0; 
+                startNoteTopPct = parseFloat(note.style.top) || 0;
+                note.style.zIndex = '150';
+            };
+
+            const move = (e) => {
+                if (!dragging) return;
+                const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+                const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+                const dx = currentX - startMouseX;
+                const dy = currentY - startMouseY;
+                const boardRect = board.getBoundingClientRect();
+                const dxPct = (dx / boardRect.width) * 100;
+                const dyPct = (dy / boardRect.height) * 100;
+                
+                note.style.left = (startNoteLeftPct + dxPct) + '%'; 
+                note.style.top = (startNoteTopPct + dyPct) + '%';
+            };
+
+            const end = () => { 
+                if(!dragging) return;
+                dragging = false; note.dataset.isDragging = 'false';
+                if(!note.classList.contains('editing')) note.style.zIndex = '10'; 
+                db.child(id).update({ left: parseFloat(note.style.left), top: parseFloat(note.style.top) });
+            };
+            
+            note.addEventListener('mousedown', start); note.addEventListener('touchstart', start);
+            window.addEventListener('mousemove', move); window.addEventListener('touchmove', move);
+            window.addEventListener('mouseup', end); window.addEventListener('touchend', end);
+        }
+
+        // --- 3. IMPROVED PHYSICS ENGINE (MOBILE & PC) ---
+        const paper = document.getElementById('scrunched-paper');
+        const traj = document.getElementById('trajectory');
+        let isAiming = false, inFlight = false;
+        let startX, startY, paperX, paperY, vX, vY;
+        let lastDx = 0, lastDy = 0; 
+        
+        const resetPaper = () => {
+            paper.style.opacity = '1';
+            paper.style.left = `calc(50% - 20px)`;
+            paper.style.bottom = `70px`; 
+            paper.style.top = 'auto'; 
+            paper.style.transform = 'none';
+            inFlight = false;
+            document.querySelectorAll('.target').forEach(t => t.dataset.hitRegistered = 'false');
+        };
+
+        const getX = (e) => e.touches ? e.touches[0].clientX : e.clientX;
+        const getY = (e) => e.touches ? e.touches[0].clientY : e.clientY;
+
+        const aimStart = (e) => {
+            if (inFlight) return;
+            isAiming = true;
+            startX = getX(e); 
+            startY = getY(e);
+            lastDx = 0; lastDy = 0;
+            traj.style.display = 'block';
+        };
+
+        const aimMove = (e) => {
+            if (!isAiming) return;
+            if (e.cancelable) e.preventDefault(); 
+            
+            lastDx = getX(e) - startX;
+            lastDy = getY(e) - startY;
+            
+            const dist = Math.sqrt(lastDx*lastDx + lastDy*lastDy);
+            const maxPull = 60; 
+            const pullX = dist > maxPull ? (lastDx/dist)*maxPull : lastDx;
+            const pullY = dist > maxPull ? (lastDy/dist)*maxPull : lastDy;
+
+            paper.style.transform = `translate(${pullX}px, ${pullY}px)`;
+            traj.style.left = (startX + pullX) + 'px';
+            traj.style.top = (startY + pullY) + 'px';
+            traj.style.width = (dist * 1.5) + 'px';
+            traj.style.transform = `rotate(${Math.atan2(-pullY, -pullX)}rad)`;
+        };
+
+        const aimEnd = (e) => {
+            if (!isAiming) return;
+            isAiming = false; traj.style.display = 'none';
+            
+            if (Math.abs(lastDx) < 10 && Math.abs(lastDy) < 10) { resetPaper(); return; } 
+            
+            vX = -lastDx * 0.35; 
+            vY = -lastDy * 0.35; 
+            
+            const rect = paper.getBoundingClientRect();
+            paperX = rect.left; paperY = rect.top;
+            
+            paper.style.left = paperX + 'px'; paper.style.top = paperY + 'px';
+            paper.style.bottom = 'auto'; paper.style.transform = 'none';
+            
+            inFlight = true;
+            requestAnimationFrame(flightLoop);
+        };
+
+        paper.addEventListener('mousedown', aimStart);
+        paper.addEventListener('touchstart', aimStart, { passive: false });
+        window.addEventListener('mousemove', aimMove);
+        window.addEventListener('touchmove', aimMove, { passive: false });
+        window.addEventListener('mouseup', aimEnd);
+        window.addEventListener('touchend', aimEnd);
+
+        function flightLoop() {
+            if (!inFlight) return;
+            paperX += vX; paperY += vY; vY += 0.4; 
+            
+            paper.style.left = paperX + 'px'; paper.style.top = paperY + 'px';
+            paper.style.transform = `rotate(${paperX * 2}deg) scale(0.6)`; 
+
+            checkCollisions();
+
+            if (inFlight) {
+                if (paperY > window.innerHeight + 50) { resetPaper(); } 
+                else { requestAnimationFrame(flightLoop); }
+            }
+        }
+
+        function checkCollisions() {
+            const paperRect = paper.getBoundingClientRect();
+            const targets = document.querySelectorAll('.target');
+
+            targets.forEach(target => {
+                if (target.dataset.hitRegistered === 'true') return;
+                const tRect = target.getBoundingClientRect();
+                
+                if (paperRect.left < tRect.right && paperRect.right > tRect.left &&
+                    paperRect.top < tRect.bottom && paperRect.bottom > tRect.top) {
+                    
+                    target.dataset.hitRegistered = 'true';
+                    triggerEvent(target.dataset.hit, tRect);
+                }
+            });
+        }
+
+        function triggerEvent(type, tRect) {
+            if (type === 'bin') {
+                inFlight = false; 
+                paper.style.left = (tRect.left + 10) + 'px';
+                paper.style.top = (tRect.top + 10) + 'px';
+                paper.style.transform = 'scale(0.3)';
+                paper.style.opacity = '0'; 
+                
+                const anim = document.getElementById('score-anim');
+                anim.style.animation = 'none'; void anim.offsetWidth; 
+                anim.style.animation = 'floatUp 1.5s forwards';
+                
+                setTimeout(resetPaper, 1500); 
+            }
+            else if (type === 'coffee') {
+                document.getElementById('coffee').style.transform = 'rotate(80deg) translate(20px, 30px)';
+                document.getElementById('coffee-spill').style.opacity = '1'; 
+                document.getElementById('coffee-spill').style.width = '100px';
+                setTimeout(() => {
+                    document.getElementById('coffee').style.transform = 'none';
+                    document.getElementById('coffee-spill').style.opacity = '0';
+                    setTimeout(() => document.getElementById('coffee-spill').style.width = '0px', 500);
+                }, 4000);
+            } 
+            else if (type === 'water') {
+                const puddle = document.getElementById('puddle');
+                puddle.style.opacity = '1'; puddle.style.width = '70px';
+                setTimeout(() => { puddle.style.opacity = '0'; setTimeout(() => puddle.style.width = '0px', 500); }, 3000);
+            } 
+            else if (type === 'bob') {
+                const speech = document.getElementById('coworker-speech');
+                const lines = [
+                    "Watch it!", "HR will hear about this.", "Hostile work environment!", "Missed me.",
+                    "Per my last email...", "Let's take this offline.", "I'm literally on a Zoom right now.",
+                    "Can we circle back?", "Ping me on Slack.", "I have a hard stop at 4.",
+                    "This could have been an email.", "Who touched my stapler?", "I need more coffee.",
+                    "Synergy!", "We need to align on this."
+                ];
+                speech.innerText = lines[Math.floor(Math.random() * lines.length)];
+                speech.style.display = 'block';
+                setTimeout(() => speech.style.display = 'none', 3000);
+            } 
+        }
+    </script>
+</body>
+</html>
