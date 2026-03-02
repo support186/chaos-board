@@ -269,8 +269,10 @@
             
             if (!note.classList.contains('editing')) {
                 const textArea = note.querySelector('.note-text');
-                if (textArea.value !== data.text) textArea.value = data.text;
-                textArea.style.color = data.color;
+                // GHOST FIX: Fallback to empty string if data.text is undefined
+                const newText = data.text || ''; 
+                if (textArea.value !== newText) textArea.value = newText;
+                textArea.style.color = data.color || '#000';
             }
 
             if (data.drawing) {
@@ -289,9 +291,10 @@
             const note = document.createElement('div');
             note.className = 'note'; 
             note.id = id; 
-            note.style.backgroundColor = data.bgColor;
-            note.style.left = data.left + '%'; 
-            note.style.top = data.top + '%';
+            // GHOST FIX: Ensure default colors and text so "undefined" never shows up
+            note.style.backgroundColor = data.bgColor || '#feff9c';
+            note.style.left = (data.left || 15) + '%'; 
+            note.style.top = (data.top || 10) + '%';
             note.dataset.isDragging = 'false';
 
             note.innerHTML = `
@@ -312,8 +315,8 @@
             const body = note.querySelector('.note-body');
             const textArea = note.querySelector('.note-text');
             
-            textArea.value = data.text;
-            textArea.style.color = data.color;
+            textArea.value = data.text || '';
+            textArea.style.color = data.color || '#000';
 
             if (data.drawing) {
                 const ctx = canvas.getContext('2d');
@@ -383,32 +386,55 @@
             const start = (e) => {
                 if (note.classList.contains('editing') && !e.target.classList.contains('note-header')) return; 
                 dragging = true; note.dataset.isDragging = 'true';
+                
                 startMouseX = e.touches ? e.touches[0].clientX : e.clientX; 
                 startMouseY = e.touches ? e.touches[0].clientY : e.clientY;
+                
                 startNoteLeftPct = parseFloat(note.style.left) || 0; 
                 startNoteTopPct = parseFloat(note.style.top) || 0;
+                
                 note.style.zIndex = '150';
             };
 
             const move = (e) => {
                 if (!dragging) return;
+                
                 const currentX = e.touches ? e.touches[0].clientX : e.clientX;
                 const currentY = e.touches ? e.touches[0].clientY : e.clientY;
                 const dx = currentX - startMouseX;
                 const dy = currentY - startMouseY;
+                
                 const boardRect = board.getBoundingClientRect();
+                
                 const dxPct = (dx / boardRect.width) * 100;
                 const dyPct = (dy / boardRect.height) * 100;
                 
-                note.style.left = (startNoteLeftPct + dxPct) + '%'; 
-                note.style.top = (startNoteTopPct + dyPct) + '%';
+                let newLeft = startNoteLeftPct + dxPct;
+                let newTop = startNoteTopPct + dyPct;
+
+                // --- INVISIBLE FENCE: Clamp coordinates so notes can't go off-screen ---
+                // Calculates the max percentage space the note can take without overflowing
+                const maxLeft = 100 - ((note.offsetWidth / boardRect.width) * 100);
+                const maxTop = 100 - ((note.offsetHeight / boardRect.height) * 100);
+
+                if (newLeft < 0) newLeft = 0;
+                if (newLeft > maxLeft) newLeft = maxLeft;
+                if (newTop < 0) newTop = 0;
+                if (newTop > maxTop) newTop = maxTop;
+                
+                note.style.left = newLeft + '%'; 
+                note.style.top = newTop + '%';
             };
 
             const end = () => { 
                 if(!dragging) return;
                 dragging = false; note.dataset.isDragging = 'false';
                 if(!note.classList.contains('editing')) note.style.zIndex = '10'; 
-                db.child(id).update({ left: parseFloat(note.style.left), top: parseFloat(note.style.top) });
+                
+                db.child(id).update({ 
+                    left: parseFloat(note.style.left), 
+                    top: parseFloat(note.style.top) 
+                });
             };
             
             note.addEventListener('mousedown', start); note.addEventListener('touchstart', start);
