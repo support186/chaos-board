@@ -21,7 +21,6 @@
         #background-office {
             height: 20vh; background: #34495e; position: relative;
             border-bottom: 8px solid #1a252f; display: flex; align-items: flex-end; 
-            /* Fixed Mobile Spacing: Use space-around and remove hardcoded margins */
             justify-content: space-around; padding: 0 10px;
         }
         
@@ -64,57 +63,33 @@
             padding: 8px; border-radius: 8px; font-size: 12px; font-weight: bold; text-align: center;
             display: none; border: 2px solid #333; z-index: 50;
         }
-        #coworker-speech::before {
-            content: ''; position: absolute; top: 15px; right: -12px;
-            border-width: 8px 0 8px 10px; border-style: solid; border-color: transparent transparent transparent #333;
-        }
-        #coworker-speech::after {
-            content: ''; position: absolute; top: 17px; right: -8px;
-            border-width: 6px 0 6px 8px; border-style: solid; border-color: transparent transparent transparent white;
-        }
-
-        /* Responsive Mobile Furniture Scaling */
-        @media (max-width: 600px) {
-            .target { transform: scale(0.85); }
-            #coworker-speech { left: -120px; width: 100px; }
-        }
+        #coworker-speech::before { content: ''; position: absolute; top: 15px; right: -12px; border-width: 8px 0 8px 10px; border-style: solid; border-color: transparent transparent transparent #333; }
+        #coworker-speech::after { content: ''; position: absolute; top: 17px; right: -8px; border-width: 6px 0 6px 8px; border-style: solid; border-color: transparent transparent transparent white; }
 
         /* --- THE BOARD --- */
-        #wall {
-            height: 60vh; background: #7f8c8d; display: flex; align-items: center; justify-content: center;
-            box-shadow: inset 0 -20px 30px rgba(0,0,0,0.4); z-index: 10;
-        }
+        #wall { height: 60vh; background: #7f8c8d; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -20px 30px rgba(0,0,0,0.4); z-index: 10; }
         #frame { width: 85%; height: 90%; background: var(--wood); padding: 15px; border-radius: 8px; position: relative; }
         
         #board-title {
             position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: #d4af37;
             padding: 5px 20px; border-radius: 3px; font-family: serif; font-weight: bold; font-size: 16px;
-            box-shadow: 3px 3px 5px rgba(0,0,0,0.4); z-index: 15; cursor: pointer; transition: transform 0.1s;
+            box-shadow: 3px 3px 5px rgba(0,0,0,0.4); z-index: 15; cursor: pointer; transition: transform 0.1s; white-space: nowrap;
         }
         #board-title:active { transform: translateX(-50%) scale(0.95); }
 
-        #corkboard {
-            width: 100%; height: 100%; background-color: var(--cork); background-image: url('https://www.transparenttextures.com/patterns/cork-board.png');
-            box-shadow: inset 5px 5px 20px rgba(0,0,0,0.5); position: relative; overflow: visible; 
-        }
+        #corkboard { width: 100%; height: 100%; background-color: var(--cork); background-image: url('https://www.transparenttextures.com/patterns/cork-board.png'); box-shadow: inset 5px 5px 20px rgba(0,0,0,0.5); position: relative; overflow: visible; }
         #pads-container { position: absolute; top: 15px; left: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 50; }
         .pad { width: 45px; height: 45px; cursor: pointer; border-radius: 2px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: rgba(0,0,0,0.3); }
 
         /* --- FOREGROUND DESK --- */
         #desk { height: 20vh; background: var(--desk); position: relative; z-index: 20; box-shadow: 0 -10px 20px rgba(0,0,0,0.5); }
         
-        #cup {
-            width: 110px; height: 80px; background: #bdc3c7; position: absolute; top: -30px; left: 10%;
-            border-radius: 10px 10px 30px 30px; display: flex; justify-content: center; gap: 8px; padding-top: 15px;
-        }
-        .sharpie {
-            width: 14px; height: 100px; cursor: pointer; margin-top: -40px; 
-            transition: transform 0.2s; background: #95a5a6; border-radius: 8px 8px 0 0; position: relative; border: 1px solid #7f8c8d;
-        }
+        #cup { width: 110px; height: 80px; background: #bdc3c7; position: absolute; top: -30px; left: 10%; border-radius: 10px 10px 30px 30px; display: flex; justify-content: center; gap: 8px; padding-top: 15px; transform-origin: bottom; }
+        .sharpie { width: 14px; height: 100px; cursor: pointer; margin-top: -40px; transition: transform 0.2s; background: #95a5a6; border-radius: 8px 8px 0 0; position: relative; border: 1px solid #7f8c8d; }
         .sharpie::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 35px; background: var(--marker-color); border-radius: 7px 7px 0 0; border-bottom: 3px solid #333; }
         .sharpie.active { transform: translateY(-25px); }
 
-        #coffee-container { position: absolute; top: -20px; right: 10%; width: 60px; height: 60px; }
+        #coffee-container { position: absolute; top: -20px; right: 10%; width: 60px; height: 60px; transform-origin: bottom; }
         #coffee { width: 50px; height: 60px; background: #ecf0f1; border-radius: 5px 5px 15px 15px; box-shadow: 8px 8px 15px rgba(0,0,0,0.5); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; z-index: 5; }
         #coffee::after { content: ''; position: absolute; right: -12px; top: 15px; width: 15px; height: 25px; border: 5px solid #ecf0f1; border-radius: 50%; z-index: -1; }
         #coffee-spill { position: absolute; top: 40px; right: 0; width: 0; height: 20px; background: #4e342e; border-radius: 50%; opacity: 0; transition: width 0.5s, opacity 0.5s; pointer-events: none; }
@@ -123,17 +98,36 @@
         #scrunched-paper {
             position: fixed; left: calc(50% - 20px); bottom: 70px; width: 40px; height: 40px;
             background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20,2 C10,4 5,12 8,22 C10,32 18,38 28,35 C38,32 40,22 35,12 C32,5 28,1 20,2 Z" fill="%23ecf0f1" stroke="%23bdc3c7" stroke-width="1"/><path d="M12,10 Q18,15 15,25 Q20,20 28,18 Q25,28 32,25 M8,18 Q15,22 25,12" fill="none" stroke="%2395a5a6" stroke-width="1.5"/></svg>');
-            background-size: contain; background-repeat: no-repeat;
-            filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.4)); cursor: grab; z-index: 1000; transition: opacity 0.3s;
+            background-size: contain; background-repeat: no-repeat; filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.4)); cursor: grab; z-index: 1000; transition: opacity 0.3s;
         }
         #scrunched-paper:active { cursor: grabbing; }
         #trajectory { position: fixed; border-top: 2px dashed rgba(255,255,255,0.8); transform-origin: 0 0; display: none; z-index: 999; pointer-events: none; }
+
+        /* --- MOBILE RESPONSIVE FIXES --- */
+        @media (max-width: 600px) {
+            /* Shrink background props */
+            #water-cooler, #coworker-desk, #bin-container { transform: scale(0.65); }
+            #coworker-speech { left: -100px; width: 110px; }
+            
+            /* Shrink desk props */
+            #cup, #coffee-container { transform: scale(0.65); }
+            #cup { left: -5%; }
+            #coffee-container { right: 0%; }
+            #scrunched-paper { bottom: 50px; transform: scale(0.8); }
+            
+            /* Adjust Board & Pads */
+            #board-title { font-size: 11px; padding: 4px 10px; top: -12px; }
+            #pads-container { top: 25px; } /* Moves pads down away from title */
+            .pad { width: 35px; height: 35px; font-size: 16px; }
+            
+            .note { width: 180px; height: 190px; } /* Slightly smaller notes on phone */
+        }
 
         /* --- SMART NOTES --- */
         .note {
             position: absolute; width: 220px; height: 230px; box-shadow: 5px 10px 15px rgba(0,0,0,0.4);
             display: flex; flex-direction: column; border-radius: 2px; transform-origin: top left;
-            transform: scale(0.2); transition: transform 0.2s, box-shadow 0.2s; z-index: 10; cursor: grab;
+            transform: scale(0.25); transition: transform 0.2s, box-shadow 0.2s; z-index: 10; cursor: grab;
         }
         .note:active { cursor: grabbing; }
         .note:hover { transform: scale(1); z-index: 90; box-shadow: 10px 20px 30px rgba(0,0,0,0.5); }
@@ -229,7 +223,6 @@
             if (pwd === "chaos") {
                 db.remove()
                     .then(() => {
-                        // Force clean the local HTML board instantly
                         document.querySelectorAll('.note').forEach(n => n.remove());
                         alert("Board successfully wiped! All ghosts eliminated.");
                     })
@@ -255,9 +248,13 @@
 
         // --- 2. PERCENTAGE-BASED CLOUD SYNC LOGIC ---
         function createNoteInCloud(bgColor) {
+            // FIX: Randomize spawn location so they don't perfectly stack and look like "ghosts"
+            const randomX = 15 + Math.random() * 10;
+            const randomY = 10 + Math.random() * 10;
+            
             db.push({
                 bgColor: bgColor,
-                left: 15, top: 10, 
+                left: randomX, top: randomY, 
                 text: '', color: currentInk,
                 drawing: '' 
             });
@@ -282,7 +279,6 @@
             
             if (!note.classList.contains('editing')) {
                 const textArea = note.querySelector('.note-text');
-                // Absolute fallback to prevent "undefined"
                 const newText = data.text === undefined ? '' : data.text; 
                 if (textArea.value !== newText) textArea.value = newText;
                 textArea.style.color = data.color || '#000';
@@ -301,7 +297,6 @@
         });
 
         function renderNoteFromDB(id, data) {
-            // Guard against fully corrupted database ghost nodes
             if (!data) return;
 
             const note = document.createElement('div');
@@ -312,7 +307,7 @@
             note.style.top = (data.top || 10) + '%';
             note.dataset.isDragging = 'false';
 
-            // Added dir="auto" for native Hebrew / LTR / RTL support!
+            // FIX: Added dir="auto" to textArea. This automatically detects Hebrew and types Right-to-Left!
             note.innerHTML = `
                 <div class="note-header"></div>
                 <div class="note-body">
@@ -428,13 +423,11 @@
                 let newLeft = startNoteLeftPct + dxPct;
                 let newTop = startNoteTopPct + dyPct;
 
-                // --- THE FIXED FENCE: Calculate based on SHRUNKEN size ---
-                const scaleModifier = note.classList.contains('editing') || note.matches(':hover') ? 1 : 0.2;
-                const scaledWidth = note.offsetWidth * scaleModifier;
-                const scaledHeight = note.offsetHeight * scaleModifier;
-                
-                const maxLeft = 100 - ((scaledWidth / boardRect.width) * 100);
-                const maxTop = 100 - ((scaledHeight / boardRect.height) * 100);
+                // FIX: PERFECT INVISIBLE FENCE
+                // This uses the actual rendered size on screen (whether small or expanded) to keep it in bounds
+                const rect = note.getBoundingClientRect();
+                const maxLeft = 100 - ((rect.width / boardRect.width) * 100);
+                const maxTop = 100 - ((rect.height / boardRect.height) * 100);
 
                 if (newLeft < 0) newLeft = 0;
                 if (newLeft > maxLeft) newLeft = maxLeft;
