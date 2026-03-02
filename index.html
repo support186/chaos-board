@@ -105,28 +105,24 @@
 
         /* --- MOBILE SPECIFIC OVERRIDES --- */
         @media (max-width: 600px) {
-            /* 1. Perfect Layout: Absolute positioning to force elements to the corners */
             #background-office { padding: 0; display: block; }
             #water-cooler { position: absolute; left: 10px; bottom: 0; transform: scale(0.65); transform-origin: bottom left; }
             #bin-container { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(0.65); transform-origin: bottom center; margin: 0; }
             #coworker-desk { position: absolute; right: 10px; bottom: 0; transform: scale(0.65); transform-origin: bottom right; margin: 0; }
             #coworker-speech { left: -140px; width: 120px; }
             
-            /* Shrink desk props */
             #cup, #coffee-container { transform: scale(0.65); }
             #cup { left: -5%; }
             #coffee-container { right: -5%; }
             #scrunched-paper { bottom: 50px; transform: scale(0.8); }
             
-            /* Adjust Board & Pads */
             #board-title { font-size: 11px; padding: 4px 10px; top: -12px; }
             #pads-container { top: 25px; } 
             .pad { width: 35px; height: 35px; font-size: 16px; }
             
-            /* 2. THE BULLETPROOF CENTER-SCREEN NOTE FIX */
             .note { width: 200px; height: 210px; } 
             
-            /* The 'fixed' property glues the note to the phone screen glass, ignoring the board completely */
+            /* Center screen note override */
             .note.editing {
                 position: fixed !important; 
                 left: 50% !important;
@@ -144,7 +140,12 @@
             transform: scale(0.25); transition: transform 0.2s, box-shadow 0.2s; z-index: 10; cursor: grab;
         }
         .note:active { cursor: grabbing; }
-        .note:hover { transform: scale(1); z-index: 90; box-shadow: 10px 20px 30px rgba(0,0,0,0.5); }
+        
+        /* FIX: Ensure the hover scale effect only happens on devices with a real mouse */
+        @media (hover: hover) and (pointer: fine) {
+            .note:hover { transform: scale(1); z-index: 90; box-shadow: 10px 20px 30px rgba(0,0,0,0.5); }
+        }
+        
         .note.editing { transform: scale(1); z-index: 100; cursor: default; }
 
         .note-header { height: 25px; display: flex; justify-content: center; background: rgba(0,0,0,0.03); border-bottom: 1px solid rgba(0,0,0,0.05); position: relative; }
@@ -254,11 +255,13 @@
             element.classList.add('active'); currentInk = color;
         }
 
-        board.addEventListener('mousedown', (e) => {
+        const closeAllNotes = (e) => {
             if (e.target === board) {
                 document.querySelectorAll('.note').forEach(n => { n.classList.remove('editing'); n.querySelector('.note-canvas').style.pointerEvents = 'none'; });
             }
-        });
+        };
+        board.addEventListener('mousedown', closeAllNotes);
+        board.addEventListener('touchstart', closeAllNotes); // Makes tapping off the note feel instant on mobile
 
         // --- 2. PERCENTAGE-BASED CLOUD SYNC LOGIC ---
         function createNoteInCloud(bgColor) {
@@ -348,12 +351,6 @@
                 img.src = data.drawing;
             }
 
-            note.addEventListener('dblclick', () => {
-                document.querySelectorAll('.note').forEach(n => n.classList.remove('editing'));
-                note.classList.add('editing');
-                switchMode(note.querySelector('.mode-btn'), 'type'); 
-            });
-
             textArea.addEventListener('input', () => { 
                 textArea.style.color = currentInk;
                 db.child(id).update({ text: textArea.value, color: currentInk });
@@ -405,10 +402,12 @@
         function initDragging(note, id) {
             let dragging = false;
             let startMouseX, startMouseY, startNoteLeftPct, startNoteTopPct;
+            let hasMoved = false; // UPGRADE: Used to detect if you dragged or just tapped
 
             const start = (e) => {
                 if (note.classList.contains('editing') && !e.target.classList.contains('note-header')) return; 
                 dragging = true; note.dataset.isDragging = 'true';
+                hasMoved = false; // Reset the tap detector
                 
                 startMouseX = e.touches ? e.touches[0].clientX : e.clientX; 
                 startMouseY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -427,8 +426,10 @@
                 const dx = currentX - startMouseX;
                 const dy = currentY - startMouseY;
                 
-                const boardRect = board.getBoundingClientRect();
+                // If you move your finger more than 5 pixels, it counts as a drag, not a tap.
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true; 
                 
+                const boardRect = board.getBoundingClientRect();
                 const dxPct = (dx / boardRect.width) * 100;
                 const dyPct = (dy / boardRect.height) * 100;
                 
@@ -451,15 +452,24 @@
                 note.style.top = newTop + '%';
             };
 
-            const end = () => { 
+            const end = (e) => { 
                 if(!dragging) return;
                 dragging = false; note.dataset.isDragging = 'false';
                 if(!note.classList.contains('editing')) note.style.zIndex = '10'; 
                 
-                db.child(id).update({ 
-                    left: parseFloat(note.style.left), 
-                    top: parseFloat(note.style.top) 
-                });
+                // FIX: If you didn't drag it, it was a clean tap! Open it instantly.
+                if (!hasMoved && !note.classList.contains('editing')) {
+                    document.querySelectorAll('.note').forEach(n => { n.classList.remove('editing'); n.querySelector('.note-canvas').style.pointerEvents = 'none'; });
+                    note.classList.add('editing');
+                    switchMode(note.querySelector('.mode-btn'), 'type'); 
+                } 
+                // If you did drag it, save its new spot to the cloud.
+                else if (hasMoved) {
+                    db.child(id).update({ 
+                        left: parseFloat(note.style.left), 
+                        top: parseFloat(note.style.top) 
+                    });
+                }
             };
             
             note.addEventListener('mousedown', start); note.addEventListener('touchstart', start);
