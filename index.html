@@ -58,17 +58,17 @@
         #bob { font-size: 40px; line-height: 1; position: relative; }
         #bob-headphones { position: absolute; top: -2px; left: 10px; font-size: 26px; transform: rotate(-10deg); }
         
-        /* Bob's Hebrew Dialog Box */
         #coworker-speech {
             position: absolute; top: -20px; left: -140px; width: 130px; background: white; color: black;
-            padding: 8px; border-radius: 8px; font-size: 14px; font-weight: bold; text-align: right; /* Align right for Hebrew */
-            display: none; border: 2px solid #333; z-index: 50; direction: rtl; /* Force RTL reading layout */
+            padding: 8px; border-radius: 8px; font-size: 14px; font-weight: bold; text-align: right;
+            display: none; border: 2px solid #333; z-index: 50; direction: rtl; 
         }
         #coworker-speech::before { content: ''; position: absolute; top: 15px; right: -12px; border-width: 8px 0 8px 10px; border-style: solid; border-color: transparent transparent transparent #333; }
         #coworker-speech::after { content: ''; position: absolute; top: 17px; right: -8px; border-width: 6px 0 6px 8px; border-style: solid; border-color: transparent transparent transparent white; }
 
         /* --- THE BOARD --- */
-        #wall { height: 60vh; background: #7f8c8d; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -20px 30px rgba(0,0,0,0.4); z-index: 10; }
+        /* Z-index removed from wall so notes can pop OVER the desk when clicked */
+        #wall { height: 60vh; background: #7f8c8d; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 -20px 30px rgba(0,0,0,0.4); }
         #frame { width: 85%; height: 90%; background: var(--wood); padding: 15px; border-radius: 8px; position: relative; }
         
         #board-title {
@@ -104,9 +104,8 @@
         #scrunched-paper:active { cursor: grabbing; }
         #trajectory { position: fixed; border-top: 2px dashed rgba(255,255,255,0.8); transform-origin: 0 0; display: none; z-index: 999; pointer-events: none; }
 
-        /* --- FOOLPROOF MOBILE OVERRIDES --- */
+        /* --- MOBILE LAYOUT --- */
         @media (max-width: 600px) {
-            /* Hard locked Office Layout */
             #background-office { padding: 0; display: block; }
             #water-cooler { position: absolute; left: 10px; bottom: 0; transform: scale(0.65); }
             #bin-container { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%) scale(0.65); margin: 0; }
@@ -124,7 +123,7 @@
             
             .note { width: 200px; height: 210px; } 
             
-            /* FOOLPROOF CENTRAL LOCK: This glues the note to the screen, ignoring everything else */
+            /* Center screen lock for mobile popups */
             .note.editing {
                 position: fixed !important; 
                 left: 50% !important;
@@ -144,11 +143,12 @@
         }
         .note:active { cursor: grabbing; }
         
-        /* Disable hover on touch screens completely */
+        /* Hover disabled for touch devices so it doesn't glitch */
         @media (hover: hover) and (pointer: fine) {
             .note:hover { transform: scale(1); z-index: 90; box-shadow: 10px 20px 30px rgba(0,0,0,0.5); }
         }
         
+        /* Z-index 100 allows it to overlap the desk on computers */
         .note.editing { transform: scale(1); z-index: 100; cursor: default; }
 
         .note-header { height: 25px; display: flex; justify-content: center; background: rgba(0,0,0,0.03); border-bottom: 1px solid rgba(0,0,0,0.05); position: relative; }
@@ -235,7 +235,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database().ref('notes');
 
-        // --- FOOLPROOF GHOST EXORCISM ---
         function adminWipe() {
             const pwd = prompt("Enter Admin Password:");
             if (pwd === "chaos") {
@@ -258,7 +257,6 @@
             element.classList.add('active'); currentInk = color;
         }
 
-        // Tapping the background closes all notes securely
         const closeAllNotes = (e) => {
             if (e.target === board || e.target.id === 'wall') {
                 document.querySelectorAll('.note').forEach(n => { n.classList.remove('editing'); n.querySelector('.note-canvas').style.pointerEvents = 'none'; });
@@ -269,7 +267,6 @@
 
         // --- 2. PERCENTAGE-BASED CLOUD SYNC LOGIC ---
         function createNoteInCloud(bgColor) {
-            // Random scatter to prevent stacking ghosts
             const randomX = 15 + Math.random() * 40;
             const randomY = 10 + Math.random() * 40;
             
@@ -300,7 +297,7 @@
             
             if (!note.classList.contains('editing')) {
                 const textArea = note.querySelector('.note-text');
-                const newText = data.text || ''; // Strict fallback
+                const newText = data.text || ''; 
                 if (textArea.value !== newText) textArea.value = newText;
                 textArea.style.color = data.color || '#000';
             }
@@ -318,7 +315,7 @@
         });
 
         function renderNoteFromDB(id, data) {
-            if (!data || !data.bgColor) return; // Kills broken DB entries instantly
+            if (!data || !data.bgColor) return; 
 
             const note = document.createElement('div');
             note.className = 'note'; 
@@ -327,6 +324,7 @@
             note.style.left = (data.left || 15) + '%'; 
             note.style.top = (data.top || 10) + '%';
             note.dataset.isDragging = 'false';
+            note.dataset.wasDragged = 'false';
 
             note.innerHTML = `
                 <div class="note-header"></div>
@@ -335,9 +333,9 @@
                     <canvas class="note-canvas"></canvas>
                 </div>
                 <div class="note-controls">
-                    <button class="mode-btn active" onclick="switchMode(this, 'type')">Type</button>
-                    <button class="mode-btn" onclick="switchMode(this, 'draw')">Draw</button>
-                    <button class="mode-btn" style="background:#e74c3c; color:white; border-color:#c0392b" onclick="closeNote(this)">Done</button>
+                    <button class="mode-btn active" onclick="switchMode(this, 'type', event)">Type</button>
+                    <button class="mode-btn" onclick="switchMode(this, 'draw', event)">Draw</button>
+                    <button class="mode-btn" style="background:#e74c3c; color:white; border-color:#c0392b" onclick="closeNote(this, event)">Done</button>
                 </div>
             `;
 
@@ -356,6 +354,19 @@
                 img.src = data.drawing;
             }
 
+            // SMART TAP SENSOR: Opens instantly on a clean click/tap
+            note.addEventListener('click', (e) => {
+                if (note.dataset.wasDragged === 'true') return;
+                if (note.classList.contains('editing')) return;
+                
+                document.querySelectorAll('.note').forEach(n => { 
+                    n.classList.remove('editing'); 
+                    n.querySelector('.note-canvas').style.pointerEvents = 'none'; 
+                });
+                note.classList.add('editing');
+                switchMode(note.querySelector('.mode-btn'), 'type', e); 
+            });
+
             textArea.addEventListener('input', () => { 
                 textArea.style.color = currentInk;
                 db.child(id).update({ text: textArea.value, color: currentInk });
@@ -365,13 +376,15 @@
             initDragging(note, id);
         }
 
-        function closeNote(btn) {
+        function closeNote(btn, event) {
+            if (event) event.stopPropagation();
             const note = btn.closest('.note');
             note.classList.remove('editing');
             note.querySelector('.note-canvas').style.pointerEvents = 'none';
         }
 
-        function switchMode(btn, mode) {
+        function switchMode(btn, mode, event) {
+            if (event) event.stopPropagation();
             const note = btn.closest('.note');
             const canvas = note.querySelector('.note-canvas');
             const textArea = note.querySelector('.note-text');
@@ -406,16 +419,13 @@
 
         function initDragging(note, id) {
             let dragging = false;
-            let hasMoved = false; 
             let startMouseX, startMouseY, startNoteLeftPct, startNoteTopPct;
 
             const start = (e) => {
-                // FOOLPROOF: If the note is open, do NOT allow it to be dragged.
-                if (note.classList.contains('editing')) return; 
-                
+                if (note.classList.contains('editing') && !e.target.classList.contains('note-header')) return; 
                 dragging = true; 
-                hasMoved = false; 
                 note.dataset.isDragging = 'true';
+                note.dataset.wasDragged = 'false'; // Reset tap sensor
                 
                 startMouseX = e.touches ? e.touches[0].clientX : e.clientX; 
                 startMouseY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -434,7 +444,8 @@
                 const dx = currentX - startMouseX;
                 const dy = currentY - startMouseY;
                 
-                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true; 
+                // If finger moves more than 5px, it's a drag, not a tap
+                if (Math.abs(dx) > 5 || Math.abs(dy) > 5) note.dataset.wasDragged = 'true'; 
                 
                 const boardRect = board.getBoundingClientRect();
                 const dxPct = (dx / boardRect.width) * 100;
@@ -443,7 +454,7 @@
                 let newLeft = startNoteLeftPct + dxPct;
                 let newTop = startNoteTopPct + dyPct;
 
-                // FOOLPROOF INVISIBLE FENCE: Hard clamp to 0-80% so it can never fall off screen
+                // HARD CLAMP: Impossible to drag off-screen
                 if (newLeft < 0) newLeft = 0;
                 if (newLeft > 80) newLeft = 80;
                 if (newTop < 0) newTop = 0;
@@ -458,14 +469,9 @@
                 dragging = false; 
                 note.dataset.isDragging = 'false';
                 
-                // FOOLPROOF SINGLE TAP DETECTOR: Open instantly if not dragged
-                if (!hasMoved) {
-                    document.querySelectorAll('.note').forEach(n => { n.classList.remove('editing'); n.querySelector('.note-canvas').style.pointerEvents = 'none'; });
-                    note.classList.add('editing');
-                    switchMode(note.querySelector('.mode-btn'), 'type'); 
-                } else {
-                    // Save new location
-                    note.style.zIndex = '10'; 
+                if(!note.classList.contains('editing')) note.style.zIndex = '10'; 
+                
+                if (note.dataset.wasDragged === 'true') {
                     db.child(id).update({ 
                         left: parseFloat(note.style.left), 
                         top: parseFloat(note.style.top) 
